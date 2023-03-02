@@ -1,6 +1,5 @@
 ---
 title: "Bioinformática- GBI6"
-subtitle: "EXAMEN FINAL - 2022II"
 author: "APELLIDO, Nombre"
 date: "`r Sys.Date()`"
 output:
@@ -12,6 +11,10 @@ output:
     toc_float:
       collapsed: no
       smooth_scroll: yes
+  pdf_document:
+    toc: yes
+    toc_depth: '4'
+subtitle: "EXAMEN FINAL - 2022II"
 ---
 
 ```{r setup, include=FALSE}
@@ -69,9 +72,12 @@ devtools::install_github("kassambara/ggpubr")
 ```{r, warning=FALSE}
 
 library(ggpmisc); library(ggplot2); library(plotly); library(palmerpenguins)
-library(ggplot2); library(magrittr); library(ggpubr); library(tidyverse)
+library(ggplot2); library(magrittr); library(ggpubr); 
+library(tidyverse)
 library(ComplexHeatmap); library(viridis)
+#install.packages('dplyr')
 ```
+
 
 
 # [4.0 PUNTOS] 1. Pingüinos de Palmer
@@ -123,6 +129,7 @@ p1 = ggerrorplot(pinguinos, x = "species", y = "bill_length_mm", color = "sex",
   xlab("Especies") + ylab("Longitud de pico (mm)") +
   scale_y_continuous(limits = c(30, 60)) +
   theme_bw() + theme(text = element_text(size=12), legend.position="none") 
+p1
 
 p2 = ggboxplot(pinguinos, x = "species", y = "bill_depth_mm",
                color = "species", lwd=1.5, shape = "species") +
@@ -142,11 +149,14 @@ p3 = ggplot(pinguinos, aes(x=bill_length_mm, y = bill_depth_mm, color=factor(spe
 
 ggarrange(p3, ggarrange(p1, p2, labels =c("b", "c"), nrow=2), 
           labels = "a", ncol=2)
+
+
 ```
 
 ### [1.0 punto] 1.1. Interprete lo que se muestra en la figura anterior
+En la grafica a, indica la disperción de puntos entre especies y tamaño de la profundidad de del pico, ademas indica una regresion lineal y la ecuación de la grafica. En la grafica b,indica la dispercion en la profundidad de pico para cada una de las especies.
+En la grafica c, indica la disperción de medias que existen entre las tres especies de pinguinos en la profundidad de pico.
 
-**INTERPRETACIÓN**
 
 ### [3.0 puntos] 1.2. Genere dos gráficas `p4` y `p5`donde: 
 
@@ -169,11 +179,35 @@ cat(paste0('<center><img src="', img4,'" width="200" height="200" alt=""></cente
 
 ```{r p1.1, echo=TRUE, warning=FALSE, fig.height=8}
 # Escriba aquí su código
+#install.packages("ggcorrplot")
+library(ggcorrplot)
+formula =y ~ x
+p4=ggplot(pinguinos, aes(x = body_mass_g, y = flipper_length_mm, color = sex)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  stat_poly_eq(aes(label = paste(stat(adj.rr.label), stat(eq.label), sep = "*\", \"*")),
+               formula = y ~ x, parse = TRUE, size = 4) +
+  facet_grid(.~island) +
+  labs(x = "Body mass (g)", y = "Flipper length (mm)", color = "Sex") +
+  theme_minimal()
+p4
+
+##
+data = pinguinos %>% select('body_mass_g','flipper_length_mm','bill_depth_mm','bill_length_mm')
+corr= cor(data)
+p5 = ggcorrplot(corr, hc.order = TRUE, type = "lower",
+   lab = TRUE)
+p5
+
+ggarrange(ggarrange(p3,p5,labels = c("a","e"),nrow = 2), ggarrange(p1,p2,p4, labels =c("b", "c","d"),nrow=3))
+
+
+         
 
 ```
 
 **INTERPRETACIÓN**
-
+Se puede diferenciar los valores de correlacion que tienen entre los parametros asignados, se evidencia con el color rojo la mayor correlacion y de azul la menor, a su vez indican valores.
 
 # [4.0 PUNTOS] 2. MAPAS DE CALOR DE EXPRESIÓN GÉNICA
 
@@ -230,11 +264,11 @@ Heatmap(expr_dist,  col=viridis(10),
 
 Realice una descripción de lo que observa en el mapa de calor considerando: 
 
-- las intensidades de color de las distancias, 
+- las intensidades de color de las distancias, indican las distancias, es decir entre un color mas oscuro indica una distancia mas corta que las que tienen colores claros
 
-- el tiempo de exposición al tratamiento
+- el tiempo de exposición al tratamiento indica el tiempo cuanto se tarde en llegar ciertas concentraciones
 
-- el tipo de suero
+- el tipo de suero, la cantidad o el suero que mas beneficia o satisface
 
 **INTERPRETACIÓN:** 
 
@@ -259,8 +293,24 @@ Aquí se carga los datos `EMTAB6141.rdata` que se requiere para este ejercicio. 
 - `'sig_genes.list'`
 
 ```{r}
-# Cargue aquí sus datos
 
+  tmpfile <- tempfile()
+  download.file('https://github.com/kevinblighe/E-MTAB-6141/raw/master/rdata/mat.tsv',
+    tmpfile, method = 'auto')
+  mat <- read.table(tmpfile, sep = '\t', row.names = 1,
+    header = TRUE, stringsAsFactors = FALSE)
+
+  tmpfile <- tempfile()
+  download.file('https://github.com/kevinblighe/E-MTAB-6141/raw/master/rdata/metadata.tsv',
+    tmpfile, method = 'auto')
+  metadata <- read.table(tmpfile, sep = '\t', row.names = 1,
+    header = TRUE, stringsAsFactors = FALSE)
+
+  tmpfile <- tempfile()
+  download.file('https://github.com/kevinblighe/E-MTAB-6141/raw/master/rdata/sig_genes.list',
+    tmpfile, method = 'auto')
+  sig_genes <- read.table(tmpfile, sep = '\t',
+    header = FALSE, stringsAsFactors = FALSE)[,1]
 ```
 
 En la siguiente celda de código, realice la réplica del mapa de calor que se encuentra a la izquierda (`hmap1`) de esta figura: 
@@ -271,6 +321,53 @@ cat(paste0('<center><img src="', img5,'" width="700" height="700" alt=""></cente
 ```
 ```{r}
 # Escriba aquí sus códigos
+heat <- t(scale(t(mat)))
+myCol <- colorRampPalette(c('royalblue', 'white', 'red3'))(100)
+  myBreaks <- seq(-1.5, 1.5, length.out = 100)
+
+  hmap1 <- Heatmap(heat,
+
+    name = 'Gene Z-score',
+
+    col = colorRamp2(myBreaks, myCol),
+
+    heatmap_legend_param = list(
+      color_bar = 'continuous',
+      legend_direction = 'horizontal',
+      legend_width = unit(8, 'cm'),
+      legend_height = unit(5.0, 'cm'),
+      title_position = 'topcenter',
+      title_gp=gpar(fontsize = 30, fontface = 'bold'),
+      labels_gp=gpar(fontsize = 24, fontface = 'bold')),
+
+    cluster_rows = TRUE,
+    show_row_dend = TRUE,
+    row_title = 'Statistically significant genes',
+    row_title_side = 'left',
+    row_title_gp = gpar(fontsize = 30,  fontface = 'bold'),
+    row_title_rot = 90,
+    show_row_names = FALSE,
+    row_names_gp = gpar(fontsize = 11, fontface = 'bold'),
+    row_names_side = 'left',
+    row_dend_width = unit(25,'mm'),
+
+    cluster_columns = TRUE,
+    show_column_dend = TRUE,
+    column_title = 'Samples',
+    column_title_side = 'bottom',
+    column_title_gp = gpar(fontsize = 30, fontface = 'bold'),
+    column_title_rot = 0,
+    show_column_names = FALSE,
+    column_names_gp = gpar(fontsize = 8, fontface = 'bold'),
+    column_names_max_height = unit(10, 'cm'),
+    column_dend_height = unit(25,'mm'),
+
+    clustering_distance_columns = function(x) as.dist(1 - cor(t(x))),
+    clustering_method_columns = 'ward.D2',
+    clustering_distance_rows = function(x) as.dist(1 - cor(t(x))),
+    clustering_method_rows = 'ward.D2')
+hmap1
+
 ```
 
 **INTERPRETACIÓN:**
